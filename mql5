@@ -1,0 +1,96 @@
+
+// Program: ProTradeX
+// Developer's Site: forexroboteasy.com
+// Development: Forex Robot Easy Team
+
+// Include necessary trading functions
+#include <Trade\Trade.mqh>
+
+// Define constant variables
+#define INTERVAL 10       // Predefined interval for order placement
+#define RISK_LEVEL 0.01   // Preferred risk level
+#define ACCOUNT_BALANCE 10000   // Account balance
+
+// Initialize trade object
+CTrade trade;
+
+// Function to place buy and sell orders at predefined intervals
+void PlaceOrders()
+{
+   double currentPrice = trade.MarketInfo(_Symbol, MODE_BID);
+
+   // Place buy orders
+   double buyPrice = currentPrice - INTERVAL;
+   trade.BuyStop(0.01, buyPrice, 0, 0, 0);
+
+   // Place sell orders
+   double sellPrice = currentPrice + INTERVAL;
+   trade.SellStop(0.01, sellPrice, 0, 0, 0);
+}
+
+// Function to adjust lot size and order step based on risk level and account balance
+void AdjustParameters()
+{
+   double lotSize = ACCOUNT_BALANCE * RISK_LEVEL;
+   trade.SetExpertMagicNumber(123456);
+
+   // Adjust lot size
+   trade.SetExpertLot(lotSize);
+
+   // Adjust order step
+   trade.SetExpertStep(INTERVAL);
+}
+
+// Function to calculate average prices and close orders accordingly
+void CloseOrders()
+{
+   double totalProfit = 0;
+   int totalOrders = trade.OrdersTotal();
+
+   for(int i = 0; i < totalOrders; i++)
+   {
+      if(trade.OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         totalProfit += trade.OrderProfit();
+      }
+   }
+
+   double averagePrice = totalProfit / totalOrders;
+
+   // Close orders based on average price
+   for(int i = 0; i < totalOrders; i++)
+   {
+      if(trade.OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         if(trade.OrderOpenPrice() > averagePrice)
+         {
+            trade.OrderClose(trade.OrderTicket(), trade.OrderLots(), trade.OrderClosePrice(), 0);
+         }
+      }
+   }
+}
+
+// Function to partially close orders
+void PartialCloseOrders()
+{
+   int totalOrders = trade.OrdersTotal();
+
+   // Partially close orders
+   for(int i = 0; i < totalOrders; i++)
+   {
+      if(trade.OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         double partialLots = trade.OrderLots() * 0.5;   // Partial closure of 50% lots
+         trade.OrderClosePartial(trade.OrderTicket(), partialLots);
+      }
+   }
+}
+
+// Entry point of the program
+void OnStart()
+{
+   PlaceOrders();
+   AdjustParameters();
+   CloseOrders();
+   PartialCloseOrders();
+}
